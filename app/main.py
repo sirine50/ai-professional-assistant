@@ -1,43 +1,35 @@
 from fastapi import FastAPI
+from app.models import UserCreate
 
-app = FastAPI(title = "Running the backend")
-users = [
-    {"id": 1, "name": "Alice", "age": 22},
-    {"id": 2, "name": "Bob", "age": 25},
-    {"id": 3, "name": "Charlie", "age": 22},
-]
+app = FastAPI(title= "AI assitant app")
+users = []
 
 @app.get("/")
 
 def root():
-    return {"message":"Hello, I am alive!"}
-
-@app.get("/health")
-
-def heath():
-    return {"status": "OK"}
+    return {"greeting": "hello to this app"}
 
 @app.get("/users")
 
-def get_user(age: int | None = None):
-    if age is None:
-        return users
-    
-    return [user for user in users if user["age"] == age]
+def get_users():
+    return users
 
-@app.get("/userss/{user_id}")
+@app.get("/users/{user_id}")
 
-def userss(user_id: int):
+def get_user(user_id: int):
     for user in users:
         if user["id"] == user_id:
             return user
-        return {"status": "user not found 404"}
+    return {"status": "user not found"}
 
-@app.get("/search")
+@app.post("/users")
 
-def search(name: str = "Guest", age: int |None = None ):
-    return {
-        "name": name,
-        "age": age,
-        "status": "working"
+def add_user(user: UserCreate):
+    new_user = {
+        "id": len(users) + 1,
+        "name": user.name,
+        "age": user.age
     }
+
+    users.append(new_user)
+    return new_user

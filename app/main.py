@@ -50,25 +50,30 @@ def add_user(user: UserCreate):
             {"name": user.name, "age":user.age}
         )
         conn.commit()
-        return {"message": "User added"}
+        result = conn.execute(
+        text("SELECT * FROM users ORDER BY id DESC LIMIT 1")).fetchone()
+
+    return {"id": result[0], "name": result[1], "age": result[2]}
+    
     
     
 @app.get("/users/{user_id}")
 
 def get_user(user_id: int):
     with engine.connect() as conn:
-        results = conn.execute(text("SELECT * FROM users"))
-        for row in results:
-            if row[0] == user_id:
-                return {"id": row[0], "name": row[1], "age": row[2]} 
+        results = conn.execute(text("SELECT * FROM users WHERE id = :user_id"), {"user_id": user_id})
     
-    raise HTTPException(status_code = 404, detail= "User not found")
+    for row in results:
+        return {"id": row[0], "name": row[1], "age": row[2]}
+
+    raise HTTPException(status_code = 404, detail= "User not found")        
+    
 
 @app.put("/users/{user_id}")
 
 def update_user(user_id: int , user: UserCreate):
     with engine.connect() as conn:
-        conn.execute(text(""" 
+        result = conn.execute(text(""" 
             UPDATE users
             SET name = :name,
                 age = :age
@@ -77,12 +82,20 @@ def update_user(user_id: int , user: UserCreate):
         {"name": user.name, "age": user.age, "user_id": user_id}
         )
         conn.commit()
-        return {"message": "User updated succefully"}
+    if result.rowcount == 0:
+        raise HTTPException(status_code = 404, detail="User not found")
+    
+    return {"message": "User updated successfully"}
 
 @app.delete("/users/{user_id}")
 
 def delete_user(user_id: int):
     with engine.connect() as conn:
-        conn.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
+        result = conn.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
         conn.commit()
-        return {"message": "User deleted succefully"}
+    
+    if result.rowcount == 0:
+        raise HTTPException(status_code = status.HTTP_204_NO_CONTENT, detail="User not found")
+    
+    return {"message": "User deleted successfully"}
+#204 No Content

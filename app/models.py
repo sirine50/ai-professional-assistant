@@ -4,3 +4,6 @@ from sqlalchemy import Column, Integer, String
 class UserCreate(BaseModel):
     name: str
     age: int
+
+class AIRequest(BaseModel):
+    question: str

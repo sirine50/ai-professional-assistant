@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, status
-from app.models import UserCreate
+from app.models import UserCreate, AIRequest
 from sqlalchemy import  text
 from app.database import engine
+from app.ai import answer_question
 
 
 
@@ -98,4 +99,9 @@ def delete_user(user_id: int):
         raise HTTPException(status_code = status.HTTP_204_NO_CONTENT, detail="User not found")
     
     return {"message": "User deleted successfully"}
-#204 No Content
+
+@app.post("/ai/ask")
+
+def ask_ai(data: AIRequest):
+    answer = answer_question(data.question)
+    return {"answer": answer}

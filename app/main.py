@@ -1,107 +1,100 @@
-from fastapi import FastAPI, HTTPException, status
-from app.models import UserCreate, AIRequest
-from sqlalchemy import  text
-from app.database import engine
-from app.ai import answer_question
+from fastapi import FastAPI, HTTPException, Body
+from pydantic import BaseModel
+from app.database import get_db_connection
+from app.models import User
+from fastapi.middleware.cors import CORSMiddleware
+from app.ai import get_mock_ai_response
 
+app = FastAPI(title="ai assistant")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app = FastAPI(title= "AI assitant app")
+# Request model for the AI route
+class AIRequest(BaseModel):
+    question: str
 
+def simple_hash(text: str) -> str: 
+    return '-'.join(str(ord(c)) for c in text)
 
+@app.post("/register")
+def register(user: User):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        exists = cursor.execute("SELECT * FROM accounts WHERE username = ?", (user.username,)).fetchone()
+        if exists:
+            return {"message": "username already exists"}
 
-with engine.connect() as conn:
-    conn.execute(text("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT,
-            age INTEGER
-        )
-    """))
-    conn.commit()
-
-
-
-@app.get("/")
-
-def root():
-    return {"status": "API running"}
-
-@app.get("/users")
-
-def get_users():
-    with engine.connect() as conn:
-        result = conn.execute(text("SELECT * FROM users"))
-        users_list = []
-        for row in result:
-            users_list.append({
-                "id": row[0],
-                "name": row[1],
-                "age": row[2]
-            })
-    
-    return users_list
-
-@app.post("/users", status_code=status.HTTP_201_CREATED)
-
-def add_user(user: UserCreate):
-    with engine.connect() as conn:
-        conn.execute(
-            text("INSERT INTO users(name, age) VALUES(:name, :age)"),
-            {"name": user.name, "age":user.age}
-        )
+        cursor.execute("INSERT INTO accounts(username, password) VALUES (?, ?)", 
+                       (user.username, simple_hash(user.password)))
         conn.commit()
-        result = conn.execute(
-        text("SELECT * FROM users ORDER BY id DESC LIMIT 1")).fetchone()
+        
+        row = cursor.execute("SELECT id FROM accounts WHERE username = ?", (user.username,)).fetchone()
+        return {"user_id": row["id"], "username": user.username}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        conn.close()
 
-    return {"id": result[0], "name": result[1], "age": result[2]}
-    
-    
-    
-@app.get("/users/{user_id}")
+@app.post("/login")
+def login(user: User):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    result = cursor.execute("SELECT * FROM accounts WHERE username = ? AND password = ?", 
+                            (user.username, simple_hash(user.password))).fetchone()
+    conn.close()
+    if result:
+        return {"user_id": result["id"], "username": result["username"]}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
 
-def get_user(user_id: int):
-    with engine.connect() as conn:
-        results = conn.execute(text("SELECT * FROM users WHERE id = :user_id"), {"user_id": user_id})
-    
-    for row in results:
-        return {"id": row[0], "name": row[1], "age": row[2]}
+@app.get("/history/{username}")
+def history(username: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    results = cursor.execute("SELECT role, content FROM messages WHERE username = ? ORDER BY timestamp ASC", 
+                             (username,)).fetchall()
+    conn.close()
+    return [dict(row) for row in results]
 
-    raise HTTPException(status_code = 404, detail= "User not found")        
-    
+@app.post("/ai/ask/{user_id}")
+def ask_ai(user_id: int, req: AIRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        user = cursor.execute("SELECT username FROM accounts WHERE id = ?", (user_id,)).fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-@app.put("/users/{user_id}")
-
-def update_user(user_id: int , user: UserCreate):
-    with engine.connect() as conn:
-        result = conn.execute(text(""" 
-            UPDATE users
-            SET name = :name,
-                age = :age
-            where id = :user_id
-        """),
-        {"name": user.name, "age": user.age, "user_id": user_id}
-        )
+        cursor.execute("INSERT INTO messages(username, role, content) VALUES (?, ?, ?)", 
+                       (user["username"], "user", req.question))
+        
+        answer = get_mock_ai_response(req.question) 
+        
+        cursor.execute("INSERT INTO messages(username, role, content) VALUES (?, ?, ?)", 
+                       (user["username"], "ai", answer))
         conn.commit()
-    if result.rowcount == 0:
-        raise HTTPException(status_code = 404, detail="User not found")
-    
-    return {"message": "User updated successfully"}
+        return {"answer": answer}
+    finally:
+        conn.close()
 
-@app.delete("/users/{user_id}")
+@app.put("/update/{user_id}")
+def update(user_id: int, user: User):
+    conn = get_db_connection() 
+    cursor = conn.cursor()
+    # Check if NEW username is taken by SOMEONE ELSE
+    exists = cursor.execute("SELECT * FROM accounts WHERE username = ? AND id != ?", (user.username, user_id)).fetchone()
 
-def delete_user(user_id: int):
-    with engine.connect() as conn:
-        result = conn.execute(text("DELETE FROM users WHERE id = :user_id"), {"user_id": user_id})
+    if not exists:
+        cursor.execute("UPDATE accounts SET username = ?, password = ? WHERE id = ?", 
+                       (user.username, simple_hash(user.password), user_id))
         conn.commit()
+        conn.close()
+        return {"user_id": user_id, "username": user.username}
     
-    if result.rowcount == 0:
-        raise HTTPException(status_code = status.HTTP_204_NO_CONTENT, detail="User not found")
-    
-    return {"message": "User deleted successfully"}
-
-@app.post("/ai/ask")
-
-def ask_ai(data: AIRequest):
-    answer = answer_question(data.question)
-    return {"answer": answer}
+    conn.close()   
+    return {"message": "username already exists"}

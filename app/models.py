@@ -1,9 +1,6 @@
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String
 
-class UserCreate(BaseModel):
-    name: str
-    age: int
+class User(BaseModel):
+    username: str
+    password: str
 
-class AIRequest(BaseModel):
-    question: str

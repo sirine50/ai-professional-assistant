@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException, Body
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException
 from app.database import get_db_connection
-from app.models import User
+from app.models import User, AIRequest
 from fastapi.middleware.cors import CORSMiddleware
 from app.ai import get_mock_ai_response
+from time import sleep
 
 app = FastAPI(title="ai assistant")
 
@@ -14,9 +14,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request model for the AI route
-class AIRequest(BaseModel):
-    question: str
+
+def simple_hash(text: str) -> str: 
+    return '-'.join(str(ord(c)) for c in text)
+
 
 def simple_hash(text: str) -> str: 
     return '-'.join(str(ord(c)) for c in text)
@@ -30,12 +31,11 @@ def register(user: User):
         if exists:
             return {"message": "username already exists"}
 
-        cursor.execute("INSERT INTO accounts(username, password) VALUES (?, ?)", 
+        res = cursor.execute("INSERT INTO accounts(username, password) VALUES (?, ?)", 
                        (user.username, simple_hash(user.password)))
         conn.commit()
         
-        row = cursor.execute("SELECT id FROM accounts WHERE username = ?", (user.username,)).fetchone()
-        return {"user_id": row["id"], "username": user.username}
+        return {"user_id": res["id"], "username": user.username}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -86,7 +86,7 @@ def ask_ai(user_id: int, req: AIRequest):
 def update(user_id: int, user: User):
     conn = get_db_connection() 
     cursor = conn.cursor()
-    # Check if NEW username is taken by SOMEONE ELSE
+   
     exists = cursor.execute("SELECT * FROM accounts WHERE username = ? AND id != ?", (user.username, user_id)).fetchone()
 
     if not exists:

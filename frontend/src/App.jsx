@@ -24,16 +24,29 @@ export default function App() {
   };
 
   const handleRegister = async () => {
-    try {
-      const res = await axios.post(`${API_BASE}/register`, formData);
-      if (res.data.message === "username already exists") {
-        alert("Username taken!");
-      } else {
-        setUser({ id: res.data.user_id, username: res.data.username });
-        setView('chat');
-      }
-    } catch (err) { alert("Registration failed"); }
-  };
+  try {
+    const res = await axios.post(`${API_BASE}/register`, formData);
+    
+    // Check if the message is the "already exists" warning
+    if (res.data.message === "username already exists") {
+      alert("Username taken!");
+      return; // EXIT early so it doesn't try to set user data
+    }
+
+    if (res.data.user_id) {
+      setUser({ id: res.data.user_id, username: res.data.username });
+      setView('chat');
+    } else {
+
+      alert("Registration failed: Server sent incomplete data.");
+    }
+
+  } catch (err) {
+    
+    console.error("Connection Error:", err);
+    alert("Could not connect to the server.");
+  }
+};
 
   const handleLogin = async () => {
     try {
@@ -80,7 +93,7 @@ export default function App() {
                 <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="stack">
                   <input name="username" type="text" placeholder="Username" className="ui-input" onChange={handleInputChange} />
                   <input name="password" type="password" placeholder="Password" className="ui-input" onChange={handleInputChange} />
-                  <button className="ui-button primary" onClick={handleLogin}>Access Terminal</button>
+                  <button className="ui-button primary" type='submit'>Access Terminal</button>
                 </form>
                 <p className="toggle-text">New? <span className="link-underline" onClick={() => setView('register')}>Create Account</span></p>
               </div>
@@ -91,7 +104,7 @@ export default function App() {
                 <form onSubmit={(e) => { e.preventDefault(); handleRegister(); }} className="stack">
                   <input name="username" type="text" placeholder="Choose Username" className="ui-input" onChange={handleInputChange} />
                   <input name="password" type="password" placeholder="Choose Password" className="ui-input" onChange={handleInputChange} />
-                  <button className="ui-button success" onClick={handleRegister}>Initialize Identity</button>
+                  <button className="ui-button success" type='submit'>Initialize Identity</button>
                 </form>
                 <p className="toggle-text">Back to <span className="link-underline" onClick={() => setView('login')}>Login</span></p>
               </div>

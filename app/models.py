@@ -4,3 +4,5 @@ class User(BaseModel):
     username: str
     password: str
 
+class AIRequest(BaseModel):
+    question: str

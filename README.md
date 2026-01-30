@@ -1,4 +1,4 @@
-#Chat Assistant 🤖
+# Chat Assistant 🤖
 
 A full-stack AI Chat application built with **FastAPI** and **React**. This project features a custom user authentication system, persistent chat history using SQLite, and a modular AI logic engine.
 

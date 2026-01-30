@@ -2,8 +2,7 @@ from fastapi import FastAPI, HTTPException
 from app.database import get_db_connection
 from app.models import User, AIRequest
 from fastapi.middleware.cors import CORSMiddleware
-from app.ai import get_mock_ai_response
-from time import sleep
+from app.ai import get_real_ai_response
 
 app = FastAPI(title="ai assistant")
 
@@ -73,7 +72,7 @@ def ask_ai(user_id: int, req: AIRequest):
         cursor.execute("INSERT INTO messages(username, role, content) VALUES (?, ?, ?)", 
                        (user["username"], "user", req.question))
         
-        answer = get_mock_ai_response(req.question) 
+        answer = get_real_ai_response(req.question) 
         
         cursor.execute("INSERT INTO messages(username, role, content) VALUES (?, ?, ?)", 
                        (user["username"], "ai", answer))

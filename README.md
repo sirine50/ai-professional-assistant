@@ -1,11 +1,11 @@
-# Nexus Chat Assistant 🤖
+#Chat Assistant 🤖
 
 A full-stack AI Chat application built with **FastAPI** and **React**. This project features a custom user authentication system, persistent chat history using SQLite, and a modular AI logic engine.
 
 ## 🚀 Features
 * **User Authentication:** Secure registration and login with custom password hashing.
 * **Persistent Memory:** Chat history is saved per user in a SQLite database.
-* **Responsive UI:** A clean, modern interface built with React and Tailwind CSS.
+* **Responsive UI:** A clean, modern interface built with React.
 * **Modular AI Backend:** Currently running a local simulation engine for speed and cost-efficiency.
 
 ## 🧠 AI Integration (Open Architecture)
@@ -15,7 +15,7 @@ This project is designed to be AI-agnostic. The logic is isolated in `app/ai.py`
 
 ## 🛠️ Tech Stack
 * **Backend:** Python, FastAPI, SQLite
-* **Frontend:** React, Axios, Tailwind CSS
+* **Frontend:** React, Axios, CSS
 * **Authentication:** Custom Hashing Logic
 
 ## 📦 Installation & Setup

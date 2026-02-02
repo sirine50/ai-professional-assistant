@@ -14,9 +14,6 @@ def init_db():
     # this one let's us write our sql request in clear way aka string
     cursor = conn.cursor()
 
-    cursor.execute("DROP TABLE accounts")
-    cursor.execute("DROP TABLE messages")
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS accounts(
         id INTEGER PRIMARY KEY AUTOINCREMENT,

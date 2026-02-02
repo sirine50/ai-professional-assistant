@@ -5,7 +5,11 @@ A full-stack AI Chat application built with **FastAPI** and **React**. This proj
 ## 🚀 Features
 * **User Authentication:** Secure registration and login with custom password hashing.
 * **Persistent Memory:** Chat history is saved per user in a SQLite database.
+<<<<<<< HEAD
 * **Responsive UI:** A clean, modern interface built with React and CSS.
+=======
+* **Responsive UI:** A clean, modern interface built with React.
+>>>>>>> 11bf9a2428a6a530f956176783c1ec5cfbe68577
 * **Modular AI Backend:** Currently running a local simulation engine for speed and cost-efficiency.
 
 ## 🧠 AI Integration (Open Architecture)
